@@ -1,0 +1,73 @@
+source_path,status,category,score,matched_keywords,extracted_text,error
+incoming/Another receipt.png,success,receipt,1,total,"Berghotel
+Grosse Scheidegg
+3818 Grindelvald
+Familie R. Maller
+
+Rech. Nr. 4572 30.07. 2007/ 13:29: 17
+Bar Tisch 7/01
+
+PxLatte Macchiato a 4.50 CHF 9.00
+AxGloki a 5.00 CHF 5.00
+IxSchweinschnitzel a 22.00
+
+18.50
+
+IxChasspatz 11 a
+
+CHF 22.00
+CHF = 18.50
+
+Total: cH 54,50
+
+Incl. 7.6% MwSt 54.50 CHF: 3.85
+
+Entspricht in Euro 36.33 EUR
+Es bediente Sie: Ursula
+
+MwSt Ne. : 430 234
+Tel. : 033 853 67 16
+Fax. : 033 853 67 19
+E-mail: grossescheidegg@b luewin. ch",
+incoming/receipt.png,success,receipt,4,"receipt, total, subtotal, tax","—————
+
+EPIC STEAKHOUSE
+
+369 THE EMBARCADERO
+SAN FRANCISCO. cA 94108
+
+RECEIPT
+
+> FILET MIGNON $98.00
+
+1 RIB EYE 952.00
+
+4 CAESAR SALAD $14.00
+
+4 CREAMED SPINACH 11.00
+
+4 BAKED POTATO $9.50
+
+SUBTOTAL 195.00
+
+TAX 17.02
+$15.00
+
+re
+TOTAL $271 02",
+incoming/receipt1.png,success,receipt,3,"receipt, total, tax","CASH RECEIPT
+
+Adress: 1234 Lorem Ipsum, Dolor
+123-456-7890
+
+Dolor Sit
+Amet
+Consectetur
+
+Adipiscing Elit
+
+Sub-total
+Sales Tax
+Balance
+
+THANK YOU",

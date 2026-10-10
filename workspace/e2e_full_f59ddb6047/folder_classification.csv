@@ -1,0 +1,9 @@
+source_path,status,category,score,matched_keywords,extracted_text,error
+e2e_full_f59ddb6047/docs/invoice.txt,success,invoice,2,"invoice, total","INVOICE
+Customer: E2E Test
+Invoice number: 12345
+Total: 250 EUR
+",
+e2e_full_f59ddb6047/docs/nested/nested_notes.txt,success,project,2,"project, agent","PROJECT NOTES
+This document belongs to the AI agent E2E test.
+",

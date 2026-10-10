@@ -1,0 +1,10 @@
+{
+  "meetings": [
+    {
+      "title": "meeting",
+      "date": "02-09-2026",
+      "start_time": "08:00",
+      "end_time": "10:00"
+    }
+  ]
+}

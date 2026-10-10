@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "email": {
+      "command": "python",
+      "args": [
+        "mcp_servers/email_server.py"
+      ]
+    }
+  }
+}

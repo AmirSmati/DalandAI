@@ -1,0 +1,4 @@
+INVOICE
+Customer: E2E Test
+Invoice number: 12345
+Total: 250 EUR

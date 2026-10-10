@@ -1,0 +1,27 @@
+source_path,status,category,score,matched_keywords,extracted_text,error
+incoming/receipt.png,success,unclassified,0,,"—————
+
+EPIC STEAKHOUSE
+
+369 THE EMBARCADERO
+SAN FRANCISCO. cA 94108
+
+RECEIPT
+
+> FILET MIGNON $98.00
+
+1 RIB EYE 952.00
+
+4 CAESAR SALAD $14.00
+
+4 CREAMED SPINACH 11.00
+
+4 BAKED POTATO $9.50
+
+SUBTOTAL 195.00
+
+TAX 17.02
+$15.00
+
+re
+TOTAL $271 02",

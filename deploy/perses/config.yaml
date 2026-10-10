@@ -1,0 +1,19 @@
+schemas:
+  panels_path: "/etc/perses/cue/schemas/panels"
+  queries_path: "/etc/perses/cue/schemas/queries"
+  datasources_path: "/etc/perses/cue/schemas/datasources"
+  variables_path: "/etc/perses/cue/schemas/variables"
+
+# File-based database (no external DB dependency for this course project)
+# plus folder-based provisioning, so the datasource and dashboard defined
+# as code under ./resources are loaded automatically on startup - no
+# manual click-ops in the Perses UI required.
+database:
+  file:
+    folder: "/perses/data"
+    extension: "yaml"
+
+provisioning:
+  interval: "1h"
+  folders:
+    - "/perses/resources"

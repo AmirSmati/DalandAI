@@ -1,0 +1,17 @@
+openai
+python-dotenv
+Pillow
+pytesseract
+pypdf
+pdf2image
+openpyxl
+mcp[cli]
+httpx2
+tavily-python
+sentence-transformers
+prometheus-client
+opentelemetry-api==1.44.0
+opentelemetry-sdk==1.44.0
+opentelemetry-exporter-otlp-proto-http==1.44.0
+pytest
+transformers

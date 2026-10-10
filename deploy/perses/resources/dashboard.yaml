@@ -1,0 +1,661 @@
+# "AI Agent Observability" dashboard for agent-harness.
+#
+# Every panel uses the TimeSeriesChart plugin. This is deliberate: it is
+# the one Perses panel schema confirmed against current upstream docs
+# (perses.dev/plugins/docs/prometheus/model) without a live Perses
+# instance available to validate against. StatChart/BarChart/Table would
+# read better for a few of these panels (see docs/OBSERVABILITY.md,
+# "Known limitations") - swap panel `plugin.kind` values for those once
+# verified against the running Perses version, if desired.
+#
+# All PromQL below only reads metrics that exist in
+# Observability/metrics.py (existing + additive) - see docs/OBSERVABILITY.md
+# for the full metric catalog.
+kind: "Dashboard"
+metadata:
+  name: "ai-agent-observability"
+  project: "agent-harness"
+spec:
+  display:
+    name: "AI Agent Observability"
+    description: "Runs, latency, LLM usage, tools, permissions, and sub-agents for the Dalanda agent-harness."
+  duration: "1h"
+  refreshInterval: "15s"
+
+  panels:
+    # ---------------- Section 1: Run Overview ----------------
+    run_active:
+      kind: "Panel"
+      spec:
+        display:
+          name: "1. Active Runs"
+          description: "Currently in-flight agent runs (agent_active_runs)."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "sum(agent_active_runs)"
+                  seriesNameFormat: "active runs"
+
+    run_throughput:
+      kind: "Panel"
+      spec:
+        display:
+          name: "2. Agent Throughput"
+          description: "Agent runs started per second."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "rate(agent_runs_total[5m])"
+                  seriesNameFormat: "runs/sec"
+
+    run_success_rate:
+      kind: "Panel"
+      spec:
+        display:
+          name: "3. Success Rate"
+          description: "Share of agent runs that completed without an unhandled error."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "1 - (rate(agent_run_failures_total[5m]) / rate(agent_runs_total[5m]))"
+                  seriesNameFormat: "success ratio"
+
+    run_failure_rate:
+      kind: "Panel"
+      spec:
+        display:
+          name: "4. Failure Rate"
+          description: "Share of agent runs that raised an unhandled error."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "rate(agent_run_failures_total[5m]) / rate(agent_runs_total[5m])"
+                  seriesNameFormat: "failure ratio"
+
+    # ---------------- Section 2: Latency ----------------
+    run_latency:
+      kind: "Panel"
+      spec:
+        display:
+          name: "5. Agent Run Latency (P50 / P95 / P99)"
+          description: "End-to-end latency of a full Agent.run() call."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.50, sum(rate(agent_run_duration_seconds_bucket[5m])) by (le))"
+                  seriesNameFormat: "p50"
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.95, sum(rate(agent_run_duration_seconds_bucket[5m])) by (le))"
+                  seriesNameFormat: "p95"
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.99, sum(rate(agent_run_duration_seconds_bucket[5m])) by (le))"
+                  seriesNameFormat: "p99"
+
+    component_latency:
+      kind: "Panel"
+      spec:
+        display:
+          name: "6. Component Latency (P95)"
+          description: "P95 latency per component: agent, planner, LLM, tool, MCP, permission, sub-agent."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.95, sum(rate(agent_run_duration_seconds_bucket[5m])) by (le))"
+                  seriesNameFormat: "agent"
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.95, sum(rate(planner_duration_seconds_bucket[5m])) by (le))"
+                  seriesNameFormat: "planner"
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.95, sum(rate(llm_call_duration_seconds_bucket[5m])) by (le))"
+                  seriesNameFormat: "llm"
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.95, sum(rate(tool_call_duration_seconds_bucket{tool_type=\"Local\"}[5m])) by (le))"
+                  seriesNameFormat: "tool (builtin)"
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.95, sum(rate(tool_call_duration_seconds_bucket{tool_type=\"MCP\"}[5m])) by (le))"
+                  seriesNameFormat: "mcp"
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.95, sum(rate(permission_check_duration_seconds_bucket[5m])) by (le))"
+                  seriesNameFormat: "permission"
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.95, sum(rate(subagent_run_duration_seconds_bucket[5m])) by (le))"
+                  seriesNameFormat: "sub-agent"
+
+    # ---------------- Section 3: LLM Usage ----------------
+    llm_tokens:
+      kind: "Panel"
+      spec:
+        display:
+          name: "7. LLM Token Usage"
+          description: "Input, output, and total tokens per second."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "rate(llm_input_tokens_total[5m])"
+                  seriesNameFormat: "input tokens/sec"
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "rate(llm_output_tokens_total[5m])"
+                  seriesNameFormat: "output tokens/sec"
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "rate(llm_input_tokens_total[5m]) + rate(llm_output_tokens_total[5m])"
+                  seriesNameFormat: "total tokens/sec"
+
+    llm_request_rate:
+      kind: "Panel"
+      spec:
+        display:
+          name: "8. LLM Request Rate"
+          description: "Chat-completion calls per second."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "rate(llm_calls_total[5m])"
+                  seriesNameFormat: "requests/sec"
+
+    llm_latency:
+      kind: "Panel"
+      spec:
+        display:
+          name: "9. LLM Latency (P95)"
+          description: "P95 latency of chat-completion calls."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.95, sum(rate(llm_call_duration_seconds_bucket[5m])) by (le))"
+                  seriesNameFormat: "p95 latency"
+
+    llm_errors:
+      kind: "Panel"
+      spec:
+        display:
+          name: "10. LLM Errors"
+          description: "LLM calls that raised an exception, by originating component."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "sum(rate(llm_errors_total[5m])) by (component)"
+                  seriesNameFormat: "{{component}}"
+
+    # ---------------- Section 4: Tool Usage ----------------
+    tool_usage_rate:
+      kind: "Panel"
+      spec:
+        display:
+          name: "11. Tool Usage Rate by Type"
+          description: "Built-in vs. MCP tool call rate."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "sum(rate(tool_calls_total[5m])) by (tool_type)"
+                  seriesNameFormat: "{{tool_type}}"
+
+    tool_top:
+      kind: "Panel"
+      spec:
+        display:
+          name: "12. Most Frequently Used Tools"
+          description: "Top 10 tools by call volume over the last hour."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "topk(10, sum(increase(tool_calls_total[1h])) by (tool_name))"
+                  seriesNameFormat: "{{tool_name}}"
+
+    tool_failures:
+      kind: "Panel"
+      spec:
+        display:
+          name: "13. Tool Failures"
+          description: "Failed tool calls per second, by tool name."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "sum(rate(tool_failure_total[5m])) by (tool_name)"
+                  seriesNameFormat: "{{tool_name}}"
+
+    # ---------------- Section 5: Permissions ----------------
+    permission_decisions:
+      kind: "Panel"
+      spec:
+        display:
+          name: "14. Permission Decisions"
+          description: "Allowed / Denied / Require_user_confirmation, per second."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "sum(rate(permission_decisions_total[5m])) by (decision)"
+                  seriesNameFormat: "{{decision}}"
+
+    permission_latency:
+      kind: "Panel"
+      spec:
+        display:
+          name: "15. Permission Check Latency (P95)"
+          description: "P95 time to evaluate a permission decision."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.95, sum(rate(permission_check_duration_seconds_bucket[5m])) by (le))"
+                  seriesNameFormat: "p95 latency"
+
+    # ---------------- Section 6: Sub-agents ----------------
+    subagent_rate:
+      kind: "Panel"
+      spec:
+        display:
+          name: "16. Sub-agent Execution Rate"
+          description: "Scheduled-task (sub-agent) runs started per second."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "sum(rate(subagent_runs_total[5m])) by (subagent_type)"
+                  seriesNameFormat: "{{subagent_type}}"
+
+    subagent_active:
+      kind: "Panel"
+      spec:
+        display:
+          name: "17. Active Sub-agents"
+          description: "Sub-agent runs currently in flight."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "sum(subagent_active_runs)"
+                  seriesNameFormat: "active"
+
+    subagent_failures:
+      kind: "Panel"
+      spec:
+        display:
+          name: "18. Sub-agent Failures"
+          description: "Sub-agent runs per second that raised an unhandled error."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "sum(rate(subagent_failures_total[5m])) by (subagent_type)"
+                  seriesNameFormat: "{{subagent_type}}"
+
+    subagent_latency:
+      kind: "Panel"
+      spec:
+        display:
+          name: "19. Sub-agent Latency (P95)"
+          description: "P95 duration of a sub-agent (scheduled-task) run."
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  datasource:
+                    kind: "PrometheusDatasource"
+                    name: "prometheus"
+                  query: "histogram_quantile(0.95, sum(rate(subagent_run_duration_seconds_bucket[5m])) by (le))"
+                  seriesNameFormat: "p95 latency"
+
+  layouts:
+    - kind: "Grid"
+      spec:
+        display:
+          title: "AI Agent Observability"
+        items:
+          # Section 1 - Run Overview
+          - x: 0
+            y: 0
+            width: 6
+            height: 6
+            content:
+              "$ref": "#/spec/panels/run_active"
+          - x: 6
+            y: 0
+            width: 6
+            height: 6
+            content:
+              "$ref": "#/spec/panels/run_throughput"
+          - x: 12
+            y: 0
+            width: 6
+            height: 6
+            content:
+              "$ref": "#/spec/panels/run_success_rate"
+          - x: 18
+            y: 0
+            width: 6
+            height: 6
+            content:
+              "$ref": "#/spec/panels/run_failure_rate"
+
+          # Section 2 - Latency
+          - x: 0
+            y: 6
+            width: 24
+            height: 8
+            content:
+              "$ref": "#/spec/panels/run_latency"
+          - x: 0
+            y: 14
+            width: 24
+            height: 8
+            content:
+              "$ref": "#/spec/panels/component_latency"
+
+          # Section 3 - LLM Usage
+          - x: 0
+            y: 22
+            width: 12
+            height: 8
+            content:
+              "$ref": "#/spec/panels/llm_tokens"
+          - x: 12
+            y: 22
+            width: 12
+            height: 8
+            content:
+              "$ref": "#/spec/panels/llm_request_rate"
+          - x: 0
+            y: 30
+            width: 12
+            height: 8
+            content:
+              "$ref": "#/spec/panels/llm_latency"
+          - x: 12
+            y: 30
+            width: 12
+            height: 8
+            content:
+              "$ref": "#/spec/panels/llm_errors"
+
+          # Section 4 - Tool Usage
+          - x: 0
+            y: 38
+            width: 8
+            height: 8
+            content:
+              "$ref": "#/spec/panels/tool_usage_rate"
+          - x: 8
+            y: 38
+            width: 8
+            height: 8
+            content:
+              "$ref": "#/spec/panels/tool_top"
+          - x: 16
+            y: 38
+            width: 8
+            height: 8
+            content:
+              "$ref": "#/spec/panels/tool_failures"
+
+          # Section 5 - Permissions
+          - x: 0
+            y: 46
+            width: 12
+            height: 8
+            content:
+              "$ref": "#/spec/panels/permission_decisions"
+          - x: 12
+            y: 46
+            width: 12
+            height: 8
+            content:
+              "$ref": "#/spec/panels/permission_latency"
+
+          # Section 6 - Sub-agents
+          - x: 0
+            y: 54
+            width: 6
+            height: 6
+            content:
+              "$ref": "#/spec/panels/subagent_rate"
+          - x: 6
+            y: 54
+            width: 6
+            height: 6
+            content:
+              "$ref": "#/spec/panels/subagent_active"
+          - x: 12
+            y: 54
+            width: 6
+            height: 6
+            content:
+              "$ref": "#/spec/panels/subagent_failures"
+          - x: 18
+            y: 54
+            width: 6
+            height: 6
+            content:
+              "$ref": "#/spec/panels/subagent_latency"

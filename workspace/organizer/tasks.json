@@ -1,0 +1,32 @@
+[
+  {
+    "title": "Adding Context to Agent",
+    "priority": "High",
+    "deadline": "02-09-2026"
+  },
+  {
+    "title": "Fixing diagram",
+    "priority": "Low",
+    "deadline": "04-09-2026"
+  },
+  {
+    "title": "getting groceries",
+    "priority": "High",
+    "deadline": "02-09-2026"
+  },
+  {
+    "title": "prepare for meeting",
+    "priority": "Medium",
+    "deadline": "06-09-2026"
+  },
+  {
+    "title": "yehaw",
+    "priority": "High",
+    "deadline": "02-09-2026"
+  },
+  {
+    "title": "Summarize unfinished AI Engineering tasks/projects",
+    "priority": "Medium",
+    "deadline": "09-09-2026"
+  }
+]

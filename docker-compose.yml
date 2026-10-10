@@ -1,0 +1,113 @@
+volumes:
+  prometheus_data:
+  tempo_data:
+  perses_data:
+
+networks:
+  observability:
+
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dalanda-agent
+    env_file:
+      - .env
+    environment:
+      # Traces flow to Tempo over the compose network by its service
+      # name - never hardcode this in application code (see
+      # Observability/tracing.py and config/settings.py).
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://tempo:4318"
+      OTEL_SERVICE_NAME: "agent-harness"
+      OTEL_ENVIRONMENT: "docker-compose"
+    ports:
+      - "8001:8001" # Prometheus /metrics
+    volumes:
+      - ./workspace:/app/workspace
+      - ./mcp_client/notion_oauth.json:/app/mcp_client/notion_oauth.json
+      - ./.gcp-saved-tokens.json:/app/.gcp-saved-tokens.json
+    networks:
+      - observability
+    depends_on:
+      tempo:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/metrics')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - observability
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./deploy/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "3200:3200" # Tempo query/search API
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    networks:
+      - observability
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3200/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # persesdev/perses runs as the non-root "nobody" user (uid 65534) for
+  # security, but a fresh named volume is created root-owned - Perses
+  # would fail with "mkdir /perses/data/...: permission denied" on first
+  # start otherwise. This one-shot job chowns the volume before Perses
+  # starts; it exits immediately and is not part of the running stack.
+  perses-init:
+    image: busybox:1.36
+    command: ["sh", "-c", "mkdir -p /perses/data && chown -R 65534:65534 /perses/data"]
+    volumes:
+      - perses_data:/perses/data
+    networks:
+      - observability
+
+  perses:
+    image: persesdev/perses:v0.50.1
+    command: ["--config=/perses/config.yaml"]
+    volumes:
+      - ./deploy/perses/config.yaml:/perses/config.yaml:ro
+      - ./deploy/perses/resources:/perses/resources:ro
+      - perses_data:/perses/data
+    ports:
+      - "8080:8080"
+    networks:
+      - observability
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      perses-init:
+        condition: service_completed_successfully
+    # No Docker healthcheck: persesdev/perses:v0.50.1 is a fully
+    # distroless image (verified - it has neither /bin/sh nor wget, only
+    # the perses binary itself), so no command can be exec'd inside the
+    # container to probe it. Nothing else depends_on perses's health, so
+    # this has no functional effect; verify readiness from the host
+    # instead (see docs/OBSERVABILITY.md - `curl http://localhost:8080/api/v1/health`).

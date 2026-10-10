@@ -1,0 +1,2 @@
+PROJECT NOTES
+This document belongs to the AI agent E2E test.

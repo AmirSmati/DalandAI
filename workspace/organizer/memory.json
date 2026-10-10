@@ -1,0 +1,51 @@
+{
+  "user_profile": {
+    "exam_date": {
+      "value": "30th (September 2026)",
+      "tags": [],
+      "updated_at": "02-09-2026 11:10:49"
+    }
+  },
+  "preferences": {
+    "memory_handling_structure": {
+      "value": "Short-term conversation memory should keep recent turns while older turns are compressed into a summary. Long-term memory should remain separate from the conversation history.",
+      "tags": [],
+      "updated_at": "07-09-2026 21:18:43"
+    },
+    "favorite_food": {
+      "value": "Doner",
+      "tags": [
+        "food",
+        "favorite"
+      ],
+      "updated_at": "09-09-2026 16:46:29"
+    }
+  },
+  "project_context": {
+    "project_team_members": {
+      "value": "Amir, Saad and Salma",
+      "tags": [],
+      "updated_at": "02-09-2026 10:58:56"
+    },
+    "week_1_code_review": {
+      "value": "week 1 code review passed well",
+      "tags": [],
+      "updated_at": "04-09-2026 09:55:06"
+    },
+    "agent-harness_project_details": {
+      "value": "The agent-harness project uses MCP for external tools and the Harness is responsible for executing both local and MCP tools.",
+      "tags": [],
+      "updated_at": "07-09-2026 21:17:03"
+    },
+    "e2e_goal": {
+      "value": "Build autonomous workspace assistant",
+      "tags": [
+        "e2e",
+        "ai"
+      ],
+      "updated_at": "23-09-2026 00:25:49"
+    }
+  },
+  "learned_facts": {},
+  "e2e": {}
+}

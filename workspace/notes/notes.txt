@@ -1,0 +1,2 @@
+Week 1 Agent Harness
+We are testing file navigation and reading.
